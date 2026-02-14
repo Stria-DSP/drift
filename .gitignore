@@ -1,0 +1,32 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Max/MSP / Max for Live
+*.mxb
+*.bak
+*.autosave
+Max 8 Crash Report*
+*.log
+
+# Optional: uncomment if you don't want to track built devices
+# *.amxd
+
+# Env and secrets
+.env
+.env.local
+*.pem
+
+# Dependencies (if you add tooling later)
+node_modules/
+__pycache__/
+.venv/
+venv/
+
+# Build / dist (if you add scripts later)
+dist/
+build/
+
+# Max docs RAG (optional; PDFs can be large)
+research/max8_pdfs/
+research/.rag_max8/

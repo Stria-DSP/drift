@@ -1,0 +1,49 @@
+---
+description: Max/M4L implementation notes for Drifter (Drift by Stria)
+globs: "**/*.maxpat"
+alwaysApply: false
+---
+
+# Max for Live Implementation Notes (high-level spec)
+
+## Environment
+
+- **Max version**: Max 8; plan upgrade to Max 9 later. Stay compatible with 8.
+- **Object reference**: [research/max8_reference.md](research/max8_reference.md). For other objects, fetch `https://docs.cycling74.com/max8/refpages/<object>` and save to `research/max8_docs/refpages/<slug>.md` (e.g. `phasor_tilde.md`).
+
+## Clock and playheads
+
+- **Master clock**: Transport-synced `phasor~` (note-value rate e.g. `1n`), `@lock 1`. Drives step index via `*~ num_steps` → `trunc~` → `change~` + `snapshot~` for coll lookup. **num_steps** is the current step length (variable).
+- **Second playhead (subdiv~ + what~):** Signal flow: **phasor~** → **subdiv~** → **what~** → **stash~** → synth section (coll lookup / makenote / bar, etc.). **Second phasor~** drives subdiv~; support:
+  - **Variable phase:** Add a user **phase offset** (0–1) and an **LFO** to the phasor output, then **wrap~ 0 1**, and feed that into **subdiv~**. So: phasor~ → **+~** (offset) → **+~** (LFO, e.g. **cycle~** at low Hz × depth) → **wrap~ 0 1** → subdiv~. The LFO modulates where the second playhead sits in the bar.
+  - **Variable frequency:** Second **phasor~** left inlet receives the rate (note value or Hz). Use a UI (menu, **live.dial**, or **live.numbox**) to send values like `1n`, `0.5n`, `1.002n`, `0.998n`, etc. so the user can change the second playhead speed. With **@lock 1**, use note values.
+  - **Reset phase to 0:** A **button** (e.g. **toggle** or **message "reset"**) → **reset** message to the second **phasor~**. Set **phasor~ @phaseoffset 0** so **reset** jumps phase to 0.
+  - **subdiv~:** Input = the (wrapped) phasor signal. **div** = step length (same as first playhead, or a separate length). Outlets: subdivided phasor signal(s) and an **index** (int). Send **div** (or **int**) when step length changes.
+  - **what~:** For sample-accurate step index: turn the **index** (int) from subdiv~ into a signal (**sig~** or route the int); feed that signal into **what~** (signal inlet). Trigger **what~** when the step changes (e.g. **change~** on the index signal → bang → what~ trigger inlet). **what~ @triggermode 1** outputs the current signal value when the trigger fires. Use that output (int/float) for **prepend get** → coll. Alternative: subdiv~ index (int) → **t i**; **change~** on index → bang → **t i** left inlet; **t i** right inlet = index; so on step change you send the new index to coll (no what~, but same result).
+
+## Pattern store and playback
+
+- **One coll** (e.g. **pattern**): Rows = steps; each row = (pitch, gate) or extend to **(pitch, gate, force)** so impact force is per step. **Step length is variable** (e.g. 4–32): use a **length** parameter; clock uses `*~ length` so step index wraps in 0..length−1. Coll either has that many rows or a fixed max (e.g. 32) with only rows 0..length−1 read by playheads.
+- **Impact force (second sequencer):** Same step count and length as the pitch/gate pattern. One **force** value per step (0–1, or 0–127 scaled). Store in the same coll as a third column **(pitch, gate, force)** or in a **separate coll** (e.g. **pattern_force**) keyed by step index. Playheads read step index → get (pitch, gate) and get force for that step; **force** is sent to the bar as velocity/impact. So each triggered note has pitch + gate + force.
+- Playheads read by step index (0..length−1) → `get` → unpack (pitch, gate [, force]) → gate check → **synth section** (bar): pitch → freq, gate → trigger, **force** → bar velocity/impact. No MIDI: sequencer drives audio only (pitch/gate/force → bar → plugout~). Pattern can be loaded from file or built in patch.
+- **Scales, tunings, range:** Sequencer constrained to a chosen scale (root + scale type), tuning (12-TET, JI, etc.), and flexible range (root + span or low/high note). Quantize playhead (and optionally grid) output to scale within range; tuning maps to **frequency** for the bar. See **[docs/SCALES_AND_TUNINGS.md](docs/SCALES_AND_TUNINGS.md)**.
+
+## Sequencer UI (high level)
+
+- **Step length**: User chooses length (e.g. 4, 8, 12, 16, 24, 32). Same value drives clock `*~ length` and defines how many steps the grid shows and the coll uses.
+- **Pitch**: One **multislider** with size = max steps (e.g. 32); only indices 0..length−1 are active. On change, write (index, pitch, existing gate) per step back to coll (e.g. iter + counter, get gate from coll, pack, prepend list). When length changes, multislider can be resized or visually limited (e.g. **size** message).
+- **Gate**: One toggle per step up to max (e.g. 32); only 0..length−1 matter. Each toggle chain: step index **fixed in the patch** (e.g. **prepend get 0** / **prepend 0**, … **prepend get 31** / **prepend 31**). On toggle: read current row from coll, replace gate, write `list N pitch gate` back. Steps beyond current length are ignored by the clock; their data can persist for when length is increased.
+- **Impact force (second sequencer UI):** One **multislider** (or second row in a matrix) for **force** per step, same size/length as the pitch sequencer (0–1 or 0–127). On change: write force for each step into the pattern store—either **list index pitch gate force** into the main coll (if rows are 4 values) or **list index force** into a separate **pattern_force** coll. Same index range 0..length−1; when length changes, force sequencer follows (resize or ignore steps beyond length).
+
+## Bar synth (high level)
+
+- **Full modal bar (gen~):** Polyphonic, real modal synthesis. See **src/modal_bar/** (e.g. modal_bar_gen.codebox for single-mode bar) and **docs/MODAL_BAR_README.md** + **docs/MODAL_BAR_GEN_DESIGN.md**. Params: material (ratios + base damping), size (freq scale), wear (random detune/decay), mallet (brightness); velocity-sensitive. Max wrapper: voice allocator, mtof per voice, gate/vel, global params → gen~ inlets; out1 → plugout~.
+- Minimal (no gen~): pitch → mtof → cycle~; gate → line~ envelope; cycle~ × line~ × gain → out. See PROJECT_BRIEF §3.4.
+
+## Signal chain (amplifier, mixer, reverb)
+
+- **Amplifier:** Contact-mic-through-tube-preamp character (drive, soft saturation e.g. tanh~, high-pass, optional tone + noise/hum). **Mixer:** Level and constant-power pan per channel; optional send to reverb. **Reverb:** Lexicon 224–style (allpass + modulated delays, long smooth tail, damping). See **[docs/SIGNAL_CHAIN.md](docs/SIGNAL_CHAIN.md)** for full spec and signal flow.
+
+## Patcher JSON
+
+- Only edit .maxpat JSON when necessary; prefer patching in Max. Boxes: `id`, `maxclass`, `patching_rect`, `text`. Lines: `source` [id, outlet], `destination` [id, inlet] (0-indexed).

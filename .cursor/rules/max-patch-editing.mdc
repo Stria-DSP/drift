@@ -1,0 +1,15 @@
+---
+description: Max patch workflow — high-level spec only
+globs: **/*.{maxpat,maxhelp,maxproj,mxo,gendsp}
+alwaysApply: false
+---
+
+# Max Patch Editing
+
+**Prefer high-level spec over low-level patching instructions.**
+
+- Describe **what** the patch does (clock → pattern lookup → MIDI; UI writes pitch/gate into coll), not detailed object-by-object wiring unless the user asks.
+- Avoid editing .maxpat JSON unless necessary; patching is done in Max by the user.
+- Optional: simple Mermaid or prose for signal flow. No need for inlet/outlet-level diagrams or step-by-step patching lists by default.
+
+**gen~ / RNBO**: You can edit `.gendsp` or provide codebox/gen~ text; those are text-based.

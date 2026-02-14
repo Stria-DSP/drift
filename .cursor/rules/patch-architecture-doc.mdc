@@ -1,0 +1,17 @@
+---
+description: Keep docs/PATCH_ARCHITECTURE.md in sync when the patch architecture changes
+alwaysApply: true
+---
+
+# Patch architecture diagram
+
+**docs/PATCH_ARCHITECTURE.md** holds the high-level Mermaid diagram of the Drifter patch (clock, playheads, pattern store, bar synth, signal chain).
+
+When you change any of the following, update that doc so the diagram and legend stay accurate:
+
+- **Clock / playheads** — master phasor~, second playhead (subdiv~, what~), step index derivation, phase/LFO/reset
+- **Pattern store** — coll layout (pitch, gate, force), step length, how playheads read it
+- **Bar synth** — voice allocation, gen~ inlets, routing from playheads to synth
+- **Signal chain** — order of blocks after the bar (amplifier, mixer, reverb, plugout~)
+
+Update both the **Mermaid flowchart** and the **Legend table** to match the current spec (e.g. planedrifter-max.mdc, PROJECT_BRIEF, SIGNAL_CHAIN.md). If the architecture doc is the only thing you’re editing, still confirm it matches the rest of the codebase.
