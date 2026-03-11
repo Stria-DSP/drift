@@ -1,0 +1,21 @@
+{
+    "mcpServers": {
+      "asana": {
+        "type": "stdio",
+        "command": "npx",
+        "args": [
+          "-y",
+          "mcp-remote@latest",
+          "https://mcp.asana.com/v2/mcp",
+          "3334",
+          "--static-oauth-client-info",
+          "{\"client_id\": \"${env:ASANA_CLIENT_ID}\", \"client_secret\": \"${env:ASANA_CLIENT_SECRET}\"}"
+        ],
+        "env": {
+          "ASANA_CLIENT_ID": "${env:ASANA_CLIENT_ID}",
+          "ASANA_CLIENT_SECRET": "${env:ASANA_CLIENT_SECRET}"
+        }
+      }
+    }
+  }
+  

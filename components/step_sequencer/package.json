@@ -1,0 +1,24 @@
+{
+  "name": "drift-step-sequencer",
+  "version": "1.0.0",
+  "description": "Drift step sequencer jsui — plain ES5 JS for Max",
+  "private": true,
+  "scripts": {
+    "check": "node check-spec.js",
+    "test": "jest",
+    "open-jsui-test": "node scripts/create-jsui-test-patch.js",
+    "open-jsui-test-minimal": "node scripts/create-minimal-jsui-test-patch.js"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.26.0",
+    "@babel/plugin-transform-arrow-functions": "^7.26.0",
+    "@babel/preset-env": "^7.26.0",
+    "@types/node": "^22.0.0",
+    "esbuild": "^0.24.0",
+    "jest": "^29.7.0",
+    "nodemon": "^3.1.0",
+    "ts-jest": "^29.2.0",
+    "typescript": "^5.6.0",
+    "uuid": "^13.0.0"
+  }
+}

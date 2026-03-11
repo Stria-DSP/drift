@@ -1,0 +1,30 @@
+---
+description: Model selection for Stria agents by task type
+alwaysApply: true
+---
+
+# Agent Model Strategy
+
+Stria is a brand creating algorithmic music tools. First product: Drift (Max for Live phasing/interference engine with struck-bar physical modeling). Use these model preferences when the user hasn't specified one.
+
+## By task type
+
+| Task | Prefer |
+|------|--------|
+| **Phase math, drift, interference logic** | Claude 4.6 Opus |
+| **Struck-bar synth design, modal synthesis** | Claude 4.6 Opus |
+| **Step sequencer, M4L UI, device wiring** | Claude 4.5 Sonnet or GPT-5.3 Codex |
+| **gen~ / RNBO C++ implementation** | Claude 4.5 Sonnet or Opus |
+| **MVP planning, docs, research synthesis** | Claude 4.5 Sonnet (or Gemini 3 Pro + Max Mode for full-doc context) |
+| **Bug fixes, small edits, boilerplate** | Gemini 3 Flash or GPT-5.3 Codex |
+
+## Default
+
+- **Primary**: Claude 4.5 Sonnet for most implementation work.
+- **Heavy lifting**: Switch to Claude 4.6 Opus for synthesis design, timing, and architecture.
+- **Budget**: Use Gemini 3 Flash or Grok Code for cheap, low-stakes tasks.
+
+## Context
+
+- Turn on **Max Mode** when the conversation needs the full MVP plan and research docs in context.
+- Domain is niche (Max/MSP, RNBO, gen~, process music); Claude 4.x is generally more reliable than cheaper models for this stack.

@@ -1,0 +1,49 @@
+# Node / JS
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Build artifacts
+dist/
+build/
+.next/
+.turbo/
+
+# TypeScript
+*.tsbuildinfo
+
+# Logs
+logs/
+*.log
+*.sqlite
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Env / secrets
+.env
+.env.*
+
+# Max/MSP / Ableton / audio tooling (generic safeguards)
+*.mxo
+*.mxe
+*.mxe64
+*.mx64
+*.amxd
+*.als
+*.wav
+*.aif
+*.aiff
+

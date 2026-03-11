@@ -1,0 +1,31 @@
+# Step sequencer jsui — rules and context
+
+## What it is
+- Drift step sequencer for Max: gate toggles, piano-roll pitch grid, per-step octave (-1/0/+1), scale mask, per-step accent.
+- TypeScript/ES modules in src/ → single file dist/step_sequencer.js for Max jsui. Spec in SPEC.md.
+
+## Build pipeline (do not break)
+1. Esbuild: bundle src/main.ts → IIFE (ES2018).
+2. Babel: transpile to ES5 (IE11) — Max’s jsui engine is old (no arrows, etc.).
+3. Post-fixes: convert remaining arrows in __esm/__commonJS and .sort().
+4. Banner: first line must be `var __maxGlobal = this;` so install() gets the jsui global. Replace install(g) with install(typeof __maxGlobal !== "undefined" ? __maxGlobal : g). Without this, the UI does not draw.
+
+## Max jsui constraints
+- Top-level this is the jsui object (mgraphics, outlet). Inside the IIFE, globalThis is not that object — hence __maxGlobal.
+- Handlers (paint, onresize, onclick, msg_int, list, etc.) are called by Max; use ctx.call(this) or closed-over global so mgraphics/outlet are correct. For msg_int/list, use invocation context for inlet index (this.inlet or global.inlet).
+- ES5 only: no Number.isNaN (use isNaN()), no other ES6+ Number.* or unsupported APIs.
+- onclick: Max may pass (x, y, button) or (button, x, y); detect by (a1 in 0–2 and a2 > 50) for (button, x, y). Wrap outlet calls in try/catch (safeOutletCall) so a bad outlet() does not surface as “error calling function onclick”. Wrap full onclick body in try/catch and in catch only use global.mgraphics.redraw() (no ctx.call(this) in catch).
+- hitTest: guard against cellW/cellH 0 (safeCol); import MARGIN in hitTest.ts.
+
+## Key source
+- main.ts: install(global), assigns paint, onresize, onclick, msg_int, list, setpattern, bang, loadbang; ensureInited, syncSizeFromMgraphics, safeOutletCall for onclick.
+- SequencerState.ts: state, layout, outputStep, loadPatternFromArray, handleMsgInt, handleScaleMaskList.
+- draw.ts, hitTest.ts, logic.ts, constants.ts, types.ts.
+
+## Commands
+- npm run build — produce dist/step_sequencer.js.
+- npm run typecheck && npm test && npm run check — validate before commit.
+- nvm use — match Node (see .nvmrc).
+
+## Integration
+- Point jsui filename at dist/step_sequencer.js (absolute path recommended; Max often does not resolve from search path). See instruments/drift/docs/STEP_SEQUENCER_JSUI.md.

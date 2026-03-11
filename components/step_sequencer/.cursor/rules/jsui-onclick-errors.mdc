@@ -1,0 +1,34 @@
+# jsui onclick errors
+
+## Symptom
+
+Max reports "error calling function onclick" (or similar) when clicking the step sequencer jsui.
+
+## Likely causes
+
+1. **Layout not ready** — Hit-testing uses `state.octaveY0`, `state.cellW`, `state.steps`, etc. If `ensureInited` / `doLayout` never ran (e.g. mgraphics not on global at load, user clicks before first paint), those values can be wrong and lead to invalid step access or NaN.
+2. **Catch-block fragility** — Using `e instanceof Error` or reading `e.message` in the onclick catch can throw in some Max/JS contexts (e.g. non-Error throwables, or getters that throw). Any throw from inside the catch causes Max to report "error calling function onclick".
+3. **Context resolution** — `ctx.call(this)` can throw if Max invokes the handler with an unexpected `this`. Fall back to the closed-over `global` if resolution fails.
+4. **Calling outlet() from onclick** — In some Max/jsui setups, calling `outlet()` from within the onclick handler triggers "error calling function onclick" and the UI does not update until focus leaves the jsui. Diagnostic (steps 1–4) showed: safeRedraw(), reading global/outlet/mgraphics, ensureInited, syncSizeFromMgraphics, and hit-test + state update are all safe; adding outlet calls brought back the error.
+5. **Calling outlet() from paint** — Flushing pending outlet work from inside the paint handler caused the jsui to go blank until focus was lost; do not call `outlet()` from the paint stack.
+
+## Solution
+
+- **In onclick:** Resolve context safely: `try { c = ctx.call(this); } catch { c = global; }`. After that, check `outlet`/`mg`, then call `ensureInited(c)` and `syncSizeFromMgraphics(mg)` before any hit-test or use of layout/state.
+- **Outlet from onclick:** Do not call `outlet()` (or `state.outputStep` / `safeOutletCall`) from the synchronous onclick stack. Queue outlet work and flush only via `setTimeout(flushPendingOutletWork, 0)` or from the **bang** handler. Do hit-test, state update, and `safeRedraw()` in onclick so the UI updates immediately. Do **not** flush the outlet queue from inside paint (causes blank UI).
+- **In catch:** Never rethrow. Use a `safeErrorMessage(e)` helper that never throws (e.g. try `e != null && typeof e === "object" && "message" in e` then `String(e.message)`, else `String(e)`, with inner try/catch and fallback to `"unknown"`). Wrap the entire catch body (debugLog, redraw) in an inner try/catch so no code in the catch can throw. Use only the closed-over `global.mgraphics` for redraw, not `ctx.call(this)`.
+
+## Constraints
+
+- Use the invocation context via `ctx.call(this)` for the main path, with try/catch fallback to `global`; in catch use only the closed-over global.
+- Wrap all outlet calls in onclick in try/catch (e.g. `safeOutletCall`).
+- Normalize onclick args: Max may pass `(x, y, button)` or `(button, x, y)`; detect `(button, x, y)` when first arg is 0–2 and second > 50.
+- ES5 in any minimal repro script: `var`, `function`, `isNaN()` not `Number.isNaN`, no arrow functions.
+
+## Resolved (step sequencer)
+
+Final working approach: `pendingOutletWork` queue; `schedule(fn)` pushes to queue and, when `setTimeout` exists, schedules `flushPendingOutletWork` for next tick. When `setTimeout` is missing, bang handler flushes the queue. Paint never flushes. Result: no onclick error, immediate UI update, no blank screen, list/fullpattern go out after click (next tick or next bang). User confirmed working as expected.
+
+## Minimal repro
+
+Run `npm run open-jsui-test-minimal` to copy `scripts/minimal_onclick_repro.js` to `dist/step_sequencer_minimal.js`, create `dist/jsui_test_minimal.maxpat`, and (on macOS) open the patch. Open the patch in Max if it didn’t open automatically, then click the jsui. If the minimal script works but the full build fails, incrementally add back (onresize, msg_int, list, IIFE/install) until the error reappears. Restore the full build with `npm run build`.

@@ -1,0 +1,93 @@
+// Lexicon 225-style reverb — Schroeder topology
+// Mono in (in1), stereo out (out1=L, out2=R)
+// in1=signal, in2=decay, in3=predelay, in4=diffusion, in5=treble_decay, in6=crossover, in7=wet
+
+// ===== INLETS =====
+// in1 = mono input
+// in2 = decay (0.1–60 s)
+// in3 = predelay (0–500 ms)
+// in4 = diffusion (0.3–0.9)
+// in5 = treble_decay (0.3–1)
+// in6 = crossover (200–800 Hz)
+// in7 = wet (0–1)
+decay = in2;
+predelay = in3;
+diffusion = in4;
+treble_decay = in5;
+crossover = in6;
+wet = in7;
+
+// ===== HISTORY (crossover LPF) =====
+History lpf_prev(0.);
+
+// ===== CONSTANTS =====
+sr = SAMPLERATE;
+inv_sr = 1. / sr;
+
+// Comb delay lengths (samples, prime-ish, ~30–45ms at 48kHz)
+N1 = 1471.;
+N2 = 1789.;
+N3 = 1933.;
+N4 = 2113.;
+
+// Allpass delay lengths (Schroeder progression ~100ms/3^i)
+M1 = 331.;
+M2 = 109.;
+M3 = 37.;
+
+// ===== PREDELAY =====
+predelay_samps = mstosamps(predelay);
+predelayed = delay(96000., 1, in1, predelay_samps);
+
+// ===== CROSSOVER (one-pole 6dB/oct) =====
+lpf_coef = exp(-2. * 3.14159 * crossover * inv_sr);
+low_band = lpf_coef * lpf_prev + (1. - lpf_coef) * predelayed;
+mid_band = predelayed - low_band;
+lpf_prev = low_band;
+
+// ===== DECAY COEFFICIENTS =====
+// g = t60(T) where T = recirculations to -60dB; T = decay_sec * sr / N
+g_low_1 = t60(decay * 1.2 * sr / N1);
+g_low_2 = t60(decay * 1.2 * sr / N2);
+g_mid_3 = t60(decay * treble_decay * sr / N3);
+g_mid_4 = t60(decay * treble_decay * sr / N4);
+
+// ===== PARALLEL COMB FILTERS =====
+d1 = delay(96000., 1, c1_out, N1);
+c1_out = low_band + g_low_1 * d1;
+
+d2 = delay(96000., 1, c2_out, N2);
+c2_out = low_band + g_low_2 * d2;
+
+d3 = delay(96000., 1, c3_out, N3);
+c3_out = mid_band + g_mid_3 * d3;
+
+d4 = delay(96000., 1, c4_out, N4);
+c4_out = mid_band + g_mid_4 * d4;
+
+// ===== SUM COMB OUTPUTS =====
+comb_sum = c1_out + c2_out + c3_out + c4_out;
+
+// ===== SERIES ALLPASS (diffusion) =====
+ap1_in_d = delay(96000., 1, comb_sum, M1);
+ap1_out_d = delay(96000., 1, ap1_out, M1);
+ap1_out = -diffusion * comb_sum + ap1_in_d + diffusion * ap1_out_d;
+
+ap2_in_d = delay(96000., 1, ap1_out, M2);
+ap2_out_d = delay(96000., 1, ap2_out, M2);
+ap2_out = -diffusion * ap1_out + ap2_in_d + diffusion * ap2_out_d;
+
+ap3_in_d = delay(96000., 1, ap2_out, M3);
+ap3_out_d = delay(96000., 1, ap3_out, M3);
+ap3_out = -diffusion * ap2_out + ap3_in_d + diffusion * ap3_out_d;
+
+// ===== STEREO MIXING MATRIX (JCRev-style decorrelation) =====
+s1 = c1_out + c3_out;
+s2 = c2_out + c4_out;
+wet_l = ap3_out * 0.7 + (s1 + s2) * 0.15;
+wet_r = ap3_out * 0.7 + (s1 - s2) * 0.15;
+
+// ===== DRY/WET MIX =====
+dry = in1;
+out1 = dry * (1. - wet) + wet_l * wet;
+out2 = dry * (1. - wet) + wet_r * wet;

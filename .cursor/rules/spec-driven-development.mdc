@@ -1,0 +1,31 @@
+---
+description: Spec-driven development with Spec Kit; SPEC.md and .specify are source of truth; use slash commands when in a component with Spec Kit
+alwaysApply: true
+---
+
+# Spec-driven development (Spec Kit)
+
+When working on a component that uses Spec Kit (has **SPEC.md** and **.specify/**), follow this process.
+
+## Source of truth
+
+- **SPEC.md** (in the component root) — Single source of truth for protocol, behavior, layout, and invariants. Implementation and docs must stay aligned.
+- **.specify/memory/** — Spec Kit memory: `constitution.md` (principles and governance), `specs/<feature>/spec.md` (feature specs). Align with SPEC.md; SPEC.md wins on protocol and behavior.
+
+## Process
+
+### When the component has Spec Kit initialized (slash commands available)
+
+1. **Use slash commands** from that component’s directory (the one containing `.specify/`). Scripts and commands expect to run from that root:
+   - **Governance:** `/speckit.constitution` — create or update principles.
+   - **Spec:** `/speckit.specify` — create or update feature specs.
+   - **Plan → Tasks → Implement:** `/speckit.plan` (with a short description) → `/speckit.tasks` → `/speckit.implement` when ready.
+   - **Quality:** `/speckit.analyze` (consistency), `/speckit.checklist` (custom checklists).
+2. **Spec before code** — Change behavior or protocol only after updating SPEC.md (and, if relevant, `.specify/memory/specs/.../spec.md`). Then implement.
+3. **Validate after build** — Run the component’s spec check (e.g. `npm run check`) so the built artifact is validated against the spec.
+
+### When not using slash commands (e.g. quick edits)
+
+1. **Before implementing or refactoring** — Read the relevant sections of SPEC.md and, if present, the feature spec in `.specify/memory/specs/`.
+2. **Implement against the spec** — Code must satisfy the protocol, data model, and behavior in SPEC.md.
+3. **Validate** — Run the component’s spec check after build. Keep spec and code in sync; if behavior or protocol changes, update SPEC.md (and .specify specs as needed) first, then implement.
