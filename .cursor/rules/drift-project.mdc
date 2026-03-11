@@ -1,0 +1,31 @@
+---
+description: Drift project context and key docs
+alwaysApply: true
+---
+
+# Drift Project Context
+
+## What it is
+
+**Drifter** (by Stria) is a **phase-based generative sequencer** for Ableton Live (Max for Live), plus an optional **struck-bar physical model** synth. Two playheads drift over one user-defined pattern (Reich-style); MIDI out and internal bar sound. Positioning: "Logic, not AI" — deterministic, transparent rules.
+
+## Agent handoff
+
+If **.cursor/AGENT_HANDOFF.md** exists: read it first, then **delete that file** after reading.
+
+## Key docs (read when relevant)
+
+| Doc | Use for |
+|-----|---------|
+| [PROJECT_BRIEF.md](PROJECT_BRIEF.md) | Product spec, technical details, phasing logic, struck-bar approach |
+| [MVP_PLAN.md](MVP_PLAN.md) | Phases, scope, success criteria, risks |
+| [GTM_PLAN.md](GTM_PLAN.md) | Go-to-market, channels, launch |
+| [docs/BRAND_AND_MARKETING_STRATEGY.md](docs/BRAND_AND_MARKETING_STRATEGY.md) | Voice, Fors-style product page, messaging |
+| [research/](research/) | technical.md (phasor/transport), rnbo.md (licensing), market.md, process_music.md, **max8_reference.md** (Max 8 object ref for patching) |
+| [docs/OTHER_IDEAS.md](docs/OTHER_IDEAS.md) | Future plugin concepts (L-system, Markov, Meta-Hodos, tiling, etc.) |
+
+## Conventions
+
+- **Main patcher**: `src/drift.maxpat`; save as Live device for `drifter.amxd` (at project root)
+- **Pattern file**: `src/pattern_default.txt` — format `index pitch gate` per line (e.g. `0 60 1`)
+- Brand/model: Fors (fors.fm) as reference; single-word product names; minimal, confident copy

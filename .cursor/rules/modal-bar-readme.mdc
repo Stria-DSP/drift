@@ -1,0 +1,17 @@
+---
+description: Keep MODAL_BAR_README and design docs in sync with modal bar codebox
+globs: "src/modal_bar/modal_bar_gen.codebox"
+alwaysApply: false
+---
+
+# Modal bar README and diagram
+
+**docs/MODAL_BAR_README.md** documents the gen~ modal bar: algorithm, Mermaid diagram, and Max wrapper. **docs/MODAL_BAR_GEN_DESIGN.md** covers implementation (codebox History limit, split design, file list).
+
+When you change **src/modal_bar/modal_bar_gen.codebox** (or other modal_bar codeboxes) in any of these ways, update the README/design doc so they stay accurate:
+
+- **Inlets or outlets** — number of inlets (e.g. 39), inlet numbering, or outlet layout. Update the **Inlet map** table and any "inlets 25–39" (or similar) references in the README.
+- **Signal flow** — exciter (trigger, window, duration), filterbank (number of resonators, how they’re driven), per-voice or global params, limiter, or sum to output. Update the **Mermaid diagram** and the bullets under it. Keep the diagram as an **algorithm/process flowchart** (trigger → exciter → resonators → mix → limiter → out), not a Max patch layout; use process steps and data flow, not inlet names or object labels.
+- **Parameters** — new or removed params (e.g. ratios, base_decay, size, wear, mallet, inv_sr, exciter_duration, window_type), or meaning of existing ones. Update **Parameters in brief**, **Global parameters** in the Max wrapper section, and the diagram if the block layout changes.
+
+After editing the codebox, confirm the README’s diagram and inlet map match the code; if not, update the README (and optionally suggest [mermaid.live](https://mermaid.live) to view the diagram).

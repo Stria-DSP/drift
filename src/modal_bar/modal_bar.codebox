@@ -1,0 +1,68 @@
+// in1 = gate (0 or velocity 0-1)
+// in2 = base_freq (Hz)
+// in3 = ratio (frequency multiplier for this mode)
+// in4 = sample_rate (Hz)
+// in5 = tau, decay in seconds (0.1 to 5.0)
+// in6 = softness, 0=hard, 1=soft (affects exc duration)
+// in7 = force, output gain (0.0 to 1.0) 
+
+History gate_prev(0.);
+History exc_phase(1.);
+History velocity(0.);
+History y_prev_1(0.);
+History y_prev_2(0.);
+
+// Param decay(1.0);      // resonator decay time, tau in seconds (0.1 to 5.0)
+// Param softness(0.5);   // mallet softness, 0.01=hard, 1=soft (affects exc duration)
+// Param force(0.5);      // output gain (0.01 to 1.0)
+
+// Input assignments
+gate = in1;
+base_freq = in2;
+ratio = in3;
+decay= in4;
+softness = in5;
+force = in6;
+sr_hz = in7;
+
+// ===== EXCITER =====
+curr_phase = exc_phase;
+trigger = (gate > 0.) && (gate_prev <= 0.);
+curr_velocity = trigger ? clamp(gate, 0.01, 1.) : velocity;
+
+// Map softness to duration: soft=10ms, hard=1ms
+exc_dur_sec = 0.001 + softness * 0.009;
+
+inv_sr = 1. / sr_hz;
+phase_inc = inv_sr / (exc_dur_sec + 1e-6);
+
+should_increment = curr_phase < 1.;
+incremented = curr_phase + phase_inc;
+new_phase = trigger ? 0. : (should_increment ? incremented : 1.);
+
+active = new_phase < 1.;
+pi = 3.14159265359;
+window = 0.5 * (1. - cos(2. * pi * new_phase));
+exc_sig = active ? window * curr_velocity : 0.;
+
+gate_prev = gate;
+exc_phase = new_phase;
+velocity = curr_velocity;
+
+// ===== RESONATOR =====
+frequency = base_freq * ratio;
+omega = 6.28318530718 * frequency * inv_sr;
+decay_factor = exp(-inv_sr / decay);
+radius = decay_factor;
+
+exc_gain = 60.;
+b0 = (1. - radius * radius) * exc_gain;
+a1 = 2. * radius * cos(omega);
+a2 = -(radius * radius);
+
+y_new = exc_sig * b0 + a1 * y_prev_1 + a2 * y_prev_2;
+
+y_prev_2 = y_prev_1;
+y_prev_1 = y_new;
+
+out1 = tanh(force * y_new * 0.5);

@@ -35,6 +35,8 @@ Thumbs.db
 # Env / secrets
 .env
 .env.*
+.env.local
+*.pem
 
 # Max/MSP / Ableton / audio tooling (generic safeguards)
 *.mxo
@@ -46,4 +48,16 @@ Thumbs.db
 *.wav
 *.aif
 *.aiff
+*.mxb
+*.bak
+*.autosave
+Max 8 Crash Report*
 
+# Python
+__pycache__/
+.venv/
+venv/
+
+# Max docs RAG (optional; PDFs can be large)
+research/max8_pdfs/
+research/.rag_max8/
